@@ -5,66 +5,39 @@ import google.generativeai as genai
 import json
 from PIL import Image
 
-# High-velocity compact layout
-st.set_page_config(page_title="MNQ 25-Point Velocity Scalper", layout="centered")
+# Responsive trading cockpit layout
+st.set_page_config(page_title="AI Autonomous Order Flow Engine", layout="centered")
 
-st.title("⚡ MNQ 25-Point Velocity Engine")
-st.subheader("High-Probability Momentum Bracket Framework")
+st.title("🤖 Autonomous Order Flow Engine")
+st.subheader("Unbiased Price Action, Liquidity, & Bracket Extractor")
 
 st.markdown("""
-> **Velocity Scalp Target Specs:**
-> * **Profit Target:** 25 Points ($50.00 Gross Profit per contract)
-> * **Protection Stop:** 10 Points ($20.00 Risk per contract)
-> * **Risk-to-Reward Ratio:** Highly efficient **1:2.5**
+---
+### 📸 Drop Your Charts Here
+Upload up to two screenshot canvases (e.g., execution view, order book depth, or a wider timeframe setup). The engine will cross-examine them without any manual price inputs.
 """)
 
-# --- 1. INSTANT EXECUTION PANEL ---
-st.markdown("### 🕹️ Real-Time Execution Bracket")
-col1, col2 = st.columns([2, 1])
+# Multiple file uploader layout
+uploaded_files = st.file_uploader(
+    "Upload trading screen captures...", 
+    type=["png", "jpg", "jpeg"], 
+    accept_multiple_files=True
+)
 
-with col1:
-    entry_price = st.number_input("🔢 TYPE ENTRY PRICE & HIT ENTER:", value=0.0, step=0.25, format="%.2f")
-with col2:
-    bias = st.radio("MOMENTUM DIRECTION:", ["LONG (Buy)", "SHORT (Sell)"], horizontal=False)
-
-# Fixed Velocity Parameters for the 25-point model
-TARGET_POINTS = 25.0
-STOP_POINTS = 10.0
-MULTIPLIER = 2.0  # $2 per index point for MNQ
-
-if entry_price > 0.0:
-    # Mechanical Bracket Engine
-    if "LONG" in bias:
-        take_profit = entry_price + TARGET_POINTS
-        stop_loss = entry_price - STOP_POINTS
-    else:  # SHORT
-        take_profit = entry_price - TARGET_POINTS
-        stop_loss = entry_price + STOP_POINTS
+if uploaded_files:
+    pil_images = []
+    
+    # Render visuals on screen
+    for i, file in enumerate(uploaded_files[:2]): # Cap at two canvases for performance
+        file_bytes = np.asarray(bytearray(file.read()), dtype=np.uint8)
+        image = cv2.imdecode(file_bytes, 1)
+        st.image(file, caption=f"Canvas {i+1}: {file.name}", use_container_width=True)
         
-    cash_risk = STOP_POINTS * MULTIPLIER
-    cash_reward = TARGET_POINTS * MULTIPLIER
-    
-    # Instant High-Visibility Dashboard
-    st.markdown("---")
-    st.markdown(f"### 🎯 Active Bracket: **{bias} Setup**")
-    
-    st.metric(label="🟢 AUTOMATED TAKE PROFIT TARGET (+25 Pts)", value=f"{take_profit:,.2f}")
-    st.metric(label="⚪ ENTRY BASELINE PRICE", value=f"{entry_price:,.2f}")
-    st.metric(label="🔴 PROTECTION STOP LOSS (-10 Pts)", value=f"{stop_loss:,.2f}")
-    
-    # Risk Profile Metrics
-    st.error(f"**Execution Summary:** Risking ${cash_risk:.2f} to bank ${cash_reward:.2f} per contract.")
-    st.markdown("---")
-
-# --- 2. BACKEND BLOCK INTEGRITY ENGINE (Optional) ---
-st.markdown("### 📸 Optional: Quick Order Block Validation")
-uploaded_file = st.file_uploader("Drop a 1-minute chart or DOM snippet to check underlying order blocks...", type=["png", "jpg", "jpeg"])
-
-if uploaded_file is not None and entry_price > 0.0:
-    file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
-    image = cv2.imdecode(file_bytes, 1)
-    
-    with st.spinner("Analyzing immediate liquidity blocks..."):
+        # Prepare for API transmission
+        rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        pil_images.append(Image.fromarray(rgb_image))
+        
+    with st.spinner("🤖 Extracting raw order blocks, scanning volume depth, and mapping execution brackets..."):
         try:
             genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
             model = genai.GenerativeModel(
@@ -72,33 +45,69 @@ if uploaded_file is not None and entry_price > 0.0:
                 generation_config={"temperature": 0.0, "response_mime_type": "application/json"}
             )
             
-            rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-            pil_image = Image.fromarray(rgb_image)
+            # The prompt is now strictly instructed to generate its own entry based on raw market structure
+            prompt = """
+            You are an autonomous institutional execution router. Your function is to analyze the provided market screens with absolute, unbiased precision.
+            Do not rely on any user inputs. Inspect the raw text values, volume profile shelves, depth of market bars, and price action layouts to extract a precise trade setup.
             
-            prompt = f"""
-            You are a high-speed futures execution system. The trader is taking a 25-point velocity scalp at {entry_price} with a direction bias of {bias}.
-            Analyze the immediate horizontal volume profile shelves or order book clusters in this screenshot.
-            Identify if there is an institutional block or immediate wall that could trap this 25-point push.
-            Return ONLY a raw JSON object matching this structure:
-            {{
-                "path_clear": "YES" or "NO",
-                "nearest_wall": float,
-                "flow_analysis": "A single sentence explaining if order flow supports a quick 25-point push."
-            }}
+            CORE ALGORITHMIC OBJECTIVES:
+            1. CURRENT PRICE: Locate the bold, active index price level displayed on the chart/DOM. Use this as your reference point.
+            2. INSTITUTIONAL IMBALANCE: Scan for high-volume nodes, heavy bid/ask order blocks, and clear supply/demand zones.
+            3. DIRECTION BIAS: Determine the high-probability path ("LONG" or "SHORT") by checking if current price is bouncing off demand/bids or failing at an overhead supply block. Look closely for fakeouts or exhaustion.
+            4. EXECUTION BRACKETS:
+               - Entry Price: Determine the optimal fill level right at or near the current market price text context.
+               - Stop Loss: Place it cleanly behind the nearest heavy visual volume shelf or structural invalidation level.
+               - Take Profit: Project a mathematical target balancing market structures and major liquidity barriers.
+            
+            Return ONLY a raw JSON object with this exact schema:
+            {
+                "direction": "LONG" or "SHORT",
+                "entry_price": float,
+                "stop_loss": float,
+                "take_profit": float,
+                "market_logic": "A crisp, concise reason why the AI chose these exact structural levels based on order blocks and volume."
+            }
             """
             
-            response = model.generate_content([prompt, pil_image])
+            response = model.generate_content([prompt] + pil_images)
             data = json.loads(response.text.strip())
             
-            path_clear = data.get("path_clear", "YES")
-            nearest_wall = float(data.get("nearest_wall", 0.0))
-            flow_analysis = data.get("flow_analysis", "")
+            direction = data.get('direction', 'LONG').upper()
+            entry = float(data.get('entry_price', 0.0))
+            stop = float(data.get('stop_loss', 0.0))
+            tp = float(data.get('take_profit', 0.0))
+            logic = data.get('market_logic', '')
             
-            st.markdown("#### 🤖 Instant Order Flow Telemetry")
-            if path_clear == "NO":
-                st.error(f"🚨 IMMEDIATE RESISTANCE WALL SPOTTED AT {nearest_wall:,.2f}: {flow_analysis}")
-            else:
-                st.success(f"✅ MOMENTUM PATH CLEAR: {flow_analysis}")
+            # Defensive validation check if vision fails to extract clean parameters
+            if entry == 0.0:
+                st.error("Engine failed to extract clear numbers from image text. Ensure screenshots are high-resolution.")
+                st.stop()
                 
+            # Compute exact risk metrics for MNQ spec ($2.00/point)
+            points_risk = abs(entry - stop)
+            points_reward = abs(tp - entry)
+            cash_risk = points_risk * 2.0
+            cash_reward = points_reward * 2.0
+            
+            # --- DASHBOARD DISPLAY ---
+            st.markdown("---")
+            st.success("📐 Autonomous Structural Matrix Mapped!")
+            
+            # Display Directional Badge
+            if direction == "LONG":
+                st.markdown("### 🟢 Unbiased Bias: **LONG**")
+            else:
+                st.markdown("### 🔴 Unbiased Bias: **SHORT**")
+                
+            st.info(f"**Structural Rationale:** {logic}")
+            
+            st.markdown("### 🎯 Machine-Calculated Execution Targets")
+            st.metric(label="🟢 TARGET TAKE PROFIT", value=f"{tp:,.2f}")
+            st.metric(label="⚪ AUTOMATED ENTRY ENTRY", value=f"{entry:,.2f}")
+            st.metric(label="🔴 STRUCTURAL STOP LOSS", value=f"{stop:,.2f}")
+            
+            # Dynamic cash value footer based on the AI's actual calculated parameters
+            st.warning(f"**Calculated Specs:** Risking {points_risk:.2f} pts (${cash_risk:.2f}) to bank {points_reward:.2f} pts (${cash_reward:.2f}) per contract.")
+            
         except Exception as e:
-            st.caption(f"Visual check bypassed: {e}")
+            st.error(f"Autonomous scan encountered an error. Details: {e}")

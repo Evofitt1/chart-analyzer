@@ -6,10 +6,10 @@ import json
 from PIL import Image
 
 # Set up clean mobile-responsive web layout
-st.set_page_config(page_title="AI 2:1 Chart Analyzer", layout="centered")
+st.set_page_config(page_title="AI Multi-Directional Chart Analyzer", layout="centered")
 
-st.title("📊 AI 2:1 Chart Analyzer")
-st.subheader("Automated Risk-to-Reward Framework")
+st.title("📊 AI Bi-Directional Chart Analyzer")
+st.subheader("Automated Long/Short 2:1 Risk Framework")
 
 # 1. File Uploader
 uploaded_file = st.file_uploader("Drop your chart screenshot here...", type=["png", "jpg", "jpeg"])
@@ -20,11 +20,10 @@ if uploaded_file is not None:
     image = cv2.imdecode(file_bytes, 1)
     st.image(uploaded_file, caption="Uploaded Chart Canvas", use_container_width=True)
     
-    with st.spinner("Analyzing current market price..."):
+    with st.spinner("Analyzing market bias and direction..."):
         try:
             genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
             
-            # Lock temperature to 0.0 for strict OCR accuracy
             model = genai.GenerativeModel(
                 'gemini-2.5-flash', 
                 generation_config={
@@ -38,38 +37,54 @@ if uploaded_file is not None:
             pil_image = Image.fromarray(rgb_image)
             
             prompt = """
-            You are a precise data extraction engine. Look at the provided trading platform screenshot.
+            You are a precise technical analysis engine. Look at the provided trading platform screenshot.
             
             STRICT EXTRACT RULES:
-            1. Find the massive, main current index price displayed in bold white text at the top left of the screen (e.g., 29,440.25). This is the absolute 'current_price'. Do NOT guess or pull from the graph lines for this.
-            2. Look at the chart structure below it. Find the nearest logical support or invalidation low level shown in the recent price swing to determine a 'stop_loss'. 
-               - Ensure the stop_loss is dynamically scaled to match the 5-digit range of the current price (e.g., if current is 29,440, the stop loss should be a logical number below it like 29,350 or 29,400 depending on the chart visual).
+            1. DIRECTION BIAS: Determine if the recent market structure or immediate price action indicates a "LONG" (bullish/buying) or "SHORT" (bearish/shorting) setup.
+            2. CURRENT PRICE: Find the massive, main current index price displayed in bold white text at the top left of the screen. This is the 'current_price'. Do NOT guess this from the graph lines.
+            3. DYNAMIC STOP LOSS: 
+               - If the setup is LONG: Identify a logical support low level below the current price for the 'stop_loss'.
+               - If the setup is SHORT: Identify a logical resistance high level above the current price for the 'stop_loss'.
             
             Return ONLY a raw JSON object matching this structure:
             {
+                "direction": "LONG" or "SHORT",
                 "current_price": float,
                 "stop_loss": float
             }
             """
             
-            # Pass the PIL image format instead of the numpy array
             response = model.generate_content([prompt, pil_image])
             data = json.loads(response.text.strip())
             
-            # Set entry exactly to the live price found at the top
+            direction = data.get('direction', 'LONG').upper()
             entry_price = float(data.get('current_price', 0.0))
             stop_loss = float(data.get('stop_loss', 0.0))
             
-            # If the AI fails or places stop loss above current price, create a default 50-point risk buffer
-            if stop_loss >= entry_price or stop_loss == 0:
-                stop_loss = entry_price - 50.0
-            
-            # HARDCODED MATHEMATICAL 2:1 RATIO CALCULATION
-            risk = entry_price - stop_loss
-            take_profit = entry_price + (risk * 2)
+            # BI-DIRECTIONAL MATHEMATICAL 2:1 RATIO CALCULATION
+            if direction == "LONG":
+                # For Longs: Stop Loss is below entry
+                if stop_loss >= entry_price or stop_loss == 0:
+                    stop_loss = entry_price - 50.0  # Default 50pt buffer
+                risk = entry_price - stop_loss
+                take_profit = entry_price + (risk * 2)
+                
+            else:  # SHORT
+                # For Shorts: Stop Loss is above entry
+                if stop_loss <= entry_price or stop_loss == 0:
+                    stop_loss = entry_price + 50.0  # Default 50pt buffer
+                risk = stop_loss - entry_price
+                take_profit = entry_price - (risk * 2)
             
             st.success("Analysis & Math Complete!")
-            st.markdown("### 🎯 Strict 2:1 Live Execution Parameters")
+            
+            # Visual indicator badge for trade direction
+            if direction == "LONG":
+                st.markdown("### 🟢 Direction: **LONG (Buy/Call)**")
+            else:
+                st.markdown("### 🔴 Direction: **SHORT (Sell/Put)**")
+                
+            st.markdown("### 🎯 Strict 2:1 Execution Parameters")
             
             # Display values clearly
             st.metric(label="Current Market Price (Entry)", value=f"${entry_price:,.2f}")

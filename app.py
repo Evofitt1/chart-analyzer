@@ -12,10 +12,13 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 2. Dynamic Bull vs Bear Head-to-Head Banner
-# High-energy graphic featuring a glowing, high-contrast bull and bear battle showcase
-banner_url = "[attachment_0](attachment)"
-st.image(banner_url, use_container_width=True)
+# 2. Bulletproof Banner Loader
+# Wrapped in a try/except block so a bad image link can NEVER crash your trading screen again
+banner_url = "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=1200&q=80"
+try:
+    st.image(banner_url, use_container_width=True)
+except Exception:
+    pass # If the image fails, skip it completely to keep the app working
 
 # Styled Title and Motivational Subtitle Block
 st.markdown("""
@@ -90,7 +93,7 @@ if uploaded_files:
                 "entry_price": float,
                 "stop_loss": float,
                 "take_profit": float,
-                "market_logic": "If the user provided a specific question, answer it thoroughly here based on what you see in the images. If no question was asked, provide a crisp reason why you chose these exact structural levels."
+                "market_logic": "If the user provided a specific question, answer it thoroughly here based on what you see in the images. If no question was asked, provide a candy reason why you chose these exact structural levels."
             }}
             """
             

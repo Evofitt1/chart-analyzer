@@ -9,13 +9,21 @@ from PIL import Image
 st.set_page_config(page_title="AI Autonomous Order Flow Engine", layout="centered")
 
 st.title("🤖 Autonomous Order Flow Engine")
-st.subheader("Unbiased Price Action, Liquidity, & Bracket Extractor")
+st.subheader("Unbiased Price Action, Liquidity, & Interactive Interrogator")
 
 st.markdown("""
 ---
 ### 📸 Drop Your Charts Here
-Upload up to two screenshot canvases (e.g., execution view, order book depth, or a wider timeframe setup). The engine will cross-examine them without any manual price inputs.
+Upload up to two screenshot canvases. You can also type a specific question below to grill the AI on the current setup.
 """)
+
+# --- NEW INTERACTIVE QUESTION FIELD ---
+st.markdown("### 💬 Ask the AI a Question")
+user_question = st.text_input(
+    "Type a specific question about these charts (Optional):",
+    placeholder="e.g., Is that an order block exhaustion? Where is the next major supply zone?",
+    help="Leave blank for standard autonomous breakdown, or type a custom question to override the text analysis."
+)
 
 # Multiple file uploader layout
 uploaded_files = st.file_uploader(
@@ -37,7 +45,7 @@ if uploaded_files:
         rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         pil_images.append(Image.fromarray(rgb_image))
         
-    with st.spinner("🤖 Extracting raw order blocks, scanning volume depth, and mapping execution brackets..."):
+    with st.spinner("🤖 Processing data blocks and answering queries..."):
         try:
             genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
             model = genai.GenerativeModel(
@@ -45,28 +53,33 @@ if uploaded_files:
                 generation_config={"temperature": 0.0, "response_mime_type": "application/json"}
             )
             
-            # The prompt is now strictly instructed to generate its own entry based on raw market structure
-            prompt = """
-            You are an autonomous institutional execution router. Your function is to analyze the provided market screens with absolute, unbiased precision.
-            Do not rely on any user inputs. Inspect the raw text values, volume profile shelves, depth of market bars, and price action layouts to extract a precise trade setup.
+            # Formulate the target question injection block
+            question_context = f"The user has a specific live question you must prioritize and answer in 'market_logic': '{user_question}'" if user_question else "Perform a standard unbiased structural breakdown."
+            
+            prompt = f"""
+            You are an autonomous institutional execution router analyzing the provided market screens with absolute, unbiased precision.
+            Inspect the raw text values, volume profile shelves, depth of market bars, and price action layouts to extract a precise trade setup.
+            
+            USER CUSTOM QUERY/QUESTION CONTEXT:
+            {question_context}
             
             CORE ALGORITHMIC OBJECTIVES:
             1. CURRENT PRICE: Locate the bold, active index price level displayed on the chart/DOM. Use this as your reference point.
             2. INSTITUTIONAL IMBALANCE: Scan for high-volume nodes, heavy bid/ask order blocks, and clear supply/demand zones.
-            3. DIRECTION BIAS: Determine the high-probability path ("LONG" or "SHORT") by checking if current price is bouncing off demand/bids or failing at an overhead supply block. Look closely for fakeouts or exhaustion.
+            3. DIRECTION BIAS: Determine the high-probability path ("LONG" or "SHORT").
             4. EXECUTION BRACKETS:
                - Entry Price: Determine the optimal fill level right at or near the current market price text context.
                - Stop Loss: Place it cleanly behind the nearest heavy visual volume shelf or structural invalidation level.
                - Take Profit: Project a mathematical target balancing market structures and major liquidity barriers.
             
             Return ONLY a raw JSON object with this exact schema:
-            {
+            {{
                 "direction": "LONG" or "SHORT",
                 "entry_price": float,
                 "stop_loss": float,
                 "take_profit": float,
-                "market_logic": "A crisp, concise reason why the AI chose these exact structural levels based on order blocks and volume."
-            }
+                "market_logic": "If the user provided a specific question, answer it thoroughly here based on what you see in the images. If no question was asked, provide a crisp reason why you chose these exact structural levels."
+            }}
             """
             
             response = model.generate_content([prompt] + pil_images)
@@ -78,7 +91,6 @@ if uploaded_files:
             tp = float(data.get('take_profit', 0.0))
             logic = data.get('market_logic', '')
             
-            # Defensive validation check if vision fails to extract clean parameters
             if entry == 0.0:
                 st.error("Engine failed to extract clear numbers from image text. Ensure screenshots are high-resolution.")
                 st.stop()
@@ -91,22 +103,26 @@ if uploaded_files:
             
             # --- DASHBOARD DISPLAY ---
             st.markdown("---")
-            st.success("📐 Autonomous Structural Matrix Mapped!")
+            st.success("📐 Analysis & Query Processing Complete!")
             
-            # Display Directional Badge
             if direction == "LONG":
                 st.markdown("### 🟢 Unbiased Bias: **LONG**")
             else:
                 st.markdown("### 🔴 Unbiased Bias: **SHORT**")
                 
-            st.info(f"**Structural Rationale:** {logic}")
+            # This section now clearly calls out the answers to your specific text questions
+            if user_question:
+                st.markdown(f"#### 💬 AI Answer to Your Question:")
+                st.info(logic)
+            else:
+                st.markdown(f"#### 📊 Structural Rationale:")
+                st.info(logic)
             
             st.markdown("### 🎯 Machine-Calculated Execution Targets")
             st.metric(label="🟢 TARGET TAKE PROFIT", value=f"{tp:,.2f}")
-            st.metric(label="⚪ AUTOMATED ENTRY ENTRY", value=f"{entry:,.2f}")
+            st.metric(label="⚪ AUTOMATED ENTRY", value=f"{entry:,.2f}")
             st.metric(label="🔴 STRUCTURAL STOP LOSS", value=f"{stop:,.2f}")
             
-            # Dynamic cash value footer based on the AI's actual calculated parameters
             st.warning(f"**Calculated Specs:** Risking {points_risk:.2f} pts (${cash_risk:.2f}) to bank {points_reward:.2f} pts (${cash_reward:.2f}) per contract.")
             
         except Exception as e:

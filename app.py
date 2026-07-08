@@ -5,29 +5,43 @@ import google.generativeai as genai
 import json
 from PIL import Image
 
-# Responsive trading cockpit layout
-st.set_page_config(page_title="AI Autonomous Order Flow Engine", layout="centered")
-
-st.title("🤖 Autonomous Order Flow Engine")
-st.subheader("Unbiased Price Action, Liquidity, & Interactive Interrogator")
-
-st.markdown("""
----
-### 📸 Drop Your Charts Here
-Upload up to two screenshot canvases. You can also type a specific question below to grill the AI on the current setup.
-""")
-
-# --- NEW INTERACTIVE QUESTION FIELD ---
-st.markdown("### 💬 Ask the AI a Question")
-user_question = st.text_input(
-    "Type a specific question about these charts (Optional):",
-    placeholder="e.g., Is that an order block exhaustion? Where is the next major supply zone?",
-    help="Leave blank for standard autonomous breakdown, or type a custom question to override the text analysis."
+# 1. Page Configuration
+st.set_page_config(
+    page_title="Alpha Flow | Order Flow Engine", 
+    layout="centered",
+    initial_sidebar_state="collapsed"
 )
 
-# Multiple file uploader layout
+# 2. Dynamic Bull vs Bear Head-to-Head Banner
+# High-energy graphic featuring a glowing, high-contrast bull and bear battle showcase
+banner_url = "[attachment_0](attachment)"
+st.image(banner_url, use_container_width=True)
+
+# Styled Title and Motivational Subtitle Block
+st.markdown("""
+<div style="text-align: center; margin-top: -10px; margin-bottom: 25px;">
+    <h1 style="color: #00ffcc; font-family: 'Arial Black', sans-serif; letter-spacing: 2px; margin-bottom: 0; text-shadow: 2px 2px #000000;">ALPHA FLOW ENGINE</h1>
+    <p style="font-style: italic; color: #a1b0c0; font-size: 1.1rem; font-weight: bold; margin-top: 5px;">
+        <span style="color: #00ff88;">⚡ BULLISH MOMENTUM</span> vs <span style="color: #ff3355;">BEARISH DISTRIBUTION 📉</span>
+    </p>
+    <p style="font-style: italic; color: #6c7a89; font-size: 0.95rem;">"Plan the trade. Trade the plan. Emotion is noise; execution is everything."</p>
+</div>
+""", unsafe_allow_html=True)
+
+st.markdown("---")
+
+# 3. Interactive Interrogator Block
+st.markdown("### 💬 Live Order Flow Query")
+user_question = st.text_input(
+    "Ask a strategic question about this execution layer (Optional):",
+    placeholder="e.g., Is this breakout exhausted? Where is the hidden institutional supply block?",
+    help="Leave blank for a completely autonomous baseline structure scan."
+)
+
+# 4. Visual Interface Feeds
+st.markdown("### 📸 Visual Interface Feeds")
 uploaded_files = st.file_uploader(
-    "Upload trading screen captures...", 
+    "Drop your live trading chart screenshots or DOM profiles here...", 
     type=["png", "jpg", "jpeg"], 
     accept_multiple_files=True
 )
@@ -35,17 +49,16 @@ uploaded_files = st.file_uploader(
 if uploaded_files:
     pil_images = []
     
-    # Render visuals on screen
-    for i, file in enumerate(uploaded_files[:2]): # Cap at two canvases for performance
+    # Display layouts cleanly
+    for i, file in enumerate(uploaded_files[:2]):
         file_bytes = np.asarray(bytearray(file.read()), dtype=np.uint8)
         image = cv2.imdecode(file_bytes, 1)
         st.image(file, caption=f"Canvas {i+1}: {file.name}", use_container_width=True)
         
-        # Prepare for API transmission
         rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         pil_images.append(Image.fromarray(rgb_image))
         
-    with st.spinner("🤖 Processing data blocks and answering queries..."):
+    with st.spinner("🤖 Mapping order blocks, reading liquidity depth, and calculating risk curves..."):
         try:
             genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
             model = genai.GenerativeModel(
@@ -53,7 +66,6 @@ if uploaded_files:
                 generation_config={"temperature": 0.0, "response_mime_type": "application/json"}
             )
             
-            # Formulate the target question injection block
             question_context = f"The user has a specific live question you must prioritize and answer in 'market_logic': '{user_question}'" if user_question else "Perform a standard unbiased structural breakdown."
             
             prompt = f"""
@@ -92,38 +104,36 @@ if uploaded_files:
             logic = data.get('market_logic', '')
             
             if entry == 0.0:
-                st.error("Engine failed to extract clear numbers from image text. Ensure screenshots are high-resolution.")
+                st.error("Engine vision failed to read core price values. Ensure text is sharp and unwarped.")
                 st.stop()
                 
-            # Compute exact risk metrics for MNQ spec ($2.00/point)
             points_risk = abs(entry - stop)
             points_reward = abs(tp - entry)
             cash_risk = points_risk * 2.0
             cash_reward = points_reward * 2.0
             
-            # --- DASHBOARD DISPLAY ---
+            # --- OUTPUT INTERFACE ---
             st.markdown("---")
-            st.success("📐 Analysis & Query Processing Complete!")
+            st.success("📐 Structural Matrix Alignment Complete")
             
             if direction == "LONG":
-                st.markdown("### 🟢 Unbiased Bias: **LONG**")
+                st.markdown("### 🟢 Flow Bias: **LONG (Bullish Liquidity Build)**")
             else:
-                st.markdown("### 🔴 Unbiased Bias: **SHORT**")
+                st.markdown("### 🔴 Flow Bias: **SHORT (Bearish Distribution)**")
                 
-            # This section now clearly calls out the answers to your specific text questions
             if user_question:
-                st.markdown(f"#### 💬 AI Answer to Your Question:")
+                st.markdown(f"#### 💬 AI Intelligence Report:")
                 st.info(logic)
             else:
                 st.markdown(f"#### 📊 Structural Rationale:")
                 st.info(logic)
             
-            st.markdown("### 🎯 Machine-Calculated Execution Targets")
+            st.markdown("### 🎯 Machine-Calculated Execution Brackets")
             st.metric(label="🟢 TARGET TAKE PROFIT", value=f"{tp:,.2f}")
-            st.metric(label="⚪ AUTOMATED ENTRY", value=f"{entry:,.2f}")
-            st.metric(label="🔴 STRUCTURAL STOP LOSS", value=f"{stop:,.2f}")
+            st.metric(label="⚪ RECONSTRUCTED ENTRY", value=f"{entry:,.2f}")
+            st.metric(label="🔴 PROTECTION STOP LOSS", value=f"{stop:,.2f}")
             
-            st.warning(f"**Calculated Specs:** Risking {points_risk:.2f} pts (${cash_risk:.2f}) to bank {points_reward:.2f} pts (${cash_reward:.2f}) per contract.")
+            st.warning(f"**Specs:** Risk: {points_risk:.2f} pts (${cash_risk:.2f}) | Target: {points_reward:.2f} pts (${cash_reward:.2f}) per contract.")
             
         except Exception as e:
             st.error(f"Autonomous scan encountered an error. Details: {e}")

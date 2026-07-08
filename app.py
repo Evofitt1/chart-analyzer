@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 import google.generativeai as genai
 import json
+from PIL import Image
 
 # Set up clean mobile-responsive web layout
 st.set_page_config(page_title="AI 2:1 Chart Analyzer", layout="centered")
@@ -32,7 +33,9 @@ if uploaded_file is not None:
                 }
             )
             
+            # Convert image to format expected by Gemini
             rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            pil_image = Image.fromarray(rgb_image)
             
             prompt = """
             You are a technical analysis OCR engine. Your sole task is to identify the current price structure.
@@ -49,7 +52,8 @@ if uploaded_file is not None:
             }
             """
             
-            response = model.generate_content([prompt, rgb_image])
+            # Pass the PIL image format instead of the numpy array
+            response = model.generate_content([prompt, pil_image])
             data = json.loads(response.text.strip())
             
             # Extract the raw prices read by the AI
@@ -57,14 +61,11 @@ if uploaded_file is not None:
             stop_loss = float(data.get('stop_loss', 0.0))
             
             # HARDCODED MATHEMATICAL 2:1 RATIO CALCULATION
-            # Risk = Entry - Stop Loss
             risk = entry_price - stop_loss
             
             if risk > 0:
-                # Take Profit = Entry + (Risk * 2)
                 take_profit = entry_price + (risk * 2)
             else:
-                # Fallback if structure is inverted or read wrong
                 take_profit = entry_price * 1.01 
             
             st.success("Analysis & Math Complete!")
@@ -79,4 +80,5 @@ if uploaded_file is not None:
             
         except Exception as e:
             st.error(f"Analysis failed. Details: {e}")
+
 

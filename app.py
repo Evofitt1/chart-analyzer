@@ -5,93 +5,100 @@ import google.generativeai as genai
 import json
 from PIL import Image
 
-# Set up clean mobile-responsive web layout
-st.set_page_config(page_title="AI Multi-Directional Chart Analyzer", layout="centered")
+# High-velocity compact layout
+st.set_page_config(page_title="MNQ 25-Point Velocity Scalper", layout="centered")
 
-st.title("📊 AI Bi-Directional Chart Analyzer")
-st.subheader("Automated Long/Short 2:1 Risk Framework")
+st.title("⚡ MNQ 25-Point Velocity Engine")
+st.subheader("High-Probability Momentum Bracket Framework")
 
-# 1. File Uploader
-uploaded_file = st.file_uploader("Drop your chart screenshot here...", type=["png", "jpg", "jpeg"])
+st.markdown("""
+> **Velocity Scalp Target Specs:**
+> * **Profit Target:** 25 Points ($50.00 Gross Profit per contract)
+> * **Protection Stop:** 10 Points ($20.00 Risk per contract)
+> * **Risk-to-Reward Ratio:** Highly efficient **1:2.5**
+""")
 
-if uploaded_file is not None:
-    # Convert file to image
+# --- 1. INSTANT EXECUTION PANEL ---
+st.markdown("### 🕹️ Real-Time Execution Bracket")
+col1, col2 = st.columns([2, 1])
+
+with col1:
+    entry_price = st.number_input("🔢 TYPE ENTRY PRICE & HIT ENTER:", value=0.0, step=0.25, format="%.2f")
+with col2:
+    bias = st.radio("MOMENTUM DIRECTION:", ["LONG (Buy)", "SHORT (Sell)"], horizontal=False)
+
+# Fixed Velocity Parameters for the 25-point model
+TARGET_POINTS = 25.0
+STOP_POINTS = 10.0
+MULTIPLIER = 2.0  # $2 per index point for MNQ
+
+if entry_price > 0.0:
+    # Mechanical Bracket Engine
+    if "LONG" in bias:
+        take_profit = entry_price + TARGET_POINTS
+        stop_loss = entry_price - STOP_POINTS
+    else:  # SHORT
+        take_profit = entry_price - TARGET_POINTS
+        stop_loss = entry_price + STOP_POINTS
+        
+    cash_risk = STOP_POINTS * MULTIPLIER
+    cash_reward = TARGET_POINTS * MULTIPLIER
+    
+    # Instant High-Visibility Dashboard
+    st.markdown("---")
+    st.markdown(f"### 🎯 Active Bracket: **{bias} Setup**")
+    
+    st.metric(label="🟢 AUTOMATED TAKE PROFIT TARGET (+25 Pts)", value=f"{take_profit:,.2f}")
+    st.metric(label="⚪ ENTRY BASELINE PRICE", value=f"{entry_price:,.2f}")
+    st.metric(label="🔴 PROTECTION STOP LOSS (-10 Pts)", value=f"{stop_loss:,.2f}")
+    
+    # Risk Profile Metrics
+    st.error(f"**Execution Summary:** Risking ${cash_risk:.2f} to bank ${cash_reward:.2f} per contract.")
+    st.markdown("---")
+
+# --- 2. BACKEND BLOCK INTEGRITY ENGINE (Optional) ---
+st.markdown("### 📸 Optional: Quick Order Block Validation")
+uploaded_file = st.file_uploader("Drop a 1-minute chart or DOM snippet to check underlying order blocks...", type=["png", "jpg", "jpeg"])
+
+if uploaded_file is not None and entry_price > 0.0:
     file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
     image = cv2.imdecode(file_bytes, 1)
-    st.image(uploaded_file, caption="Uploaded Chart Canvas", use_container_width=True)
     
-    with st.spinner("Analyzing market bias and direction..."):
+    with st.spinner("Analyzing immediate liquidity blocks..."):
         try:
             genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-            
             model = genai.GenerativeModel(
                 'gemini-2.5-flash', 
-                generation_config={
-                    "temperature": 0.0,
-                    "response_mime_type": "application/json"
-                }
+                generation_config={"temperature": 0.0, "response_mime_type": "application/json"}
             )
             
-            # Convert image to format expected by Gemini
             rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             pil_image = Image.fromarray(rgb_image)
             
-            prompt = """
-            You are a precise technical analysis engine. Look at the provided trading platform screenshot.
-            
-            STRICT EXTRACT RULES:
-            1. DIRECTION BIAS: Determine if the recent market structure or immediate price action indicates a "LONG" (bullish/buying) or "SHORT" (bearish/shorting) setup.
-            2. CURRENT PRICE: Find the massive, main current index price displayed in bold white text at the top left of the screen. This is the 'current_price'. Do NOT guess this from the graph lines.
-            3. DYNAMIC STOP LOSS: 
-               - If the setup is LONG: Identify a logical support low level below the current price for the 'stop_loss'.
-               - If the setup is SHORT: Identify a logical resistance high level above the current price for the 'stop_loss'.
-            
+            prompt = f"""
+            You are a high-speed futures execution system. The trader is taking a 25-point velocity scalp at {entry_price} with a direction bias of {bias}.
+            Analyze the immediate horizontal volume profile shelves or order book clusters in this screenshot.
+            Identify if there is an institutional block or immediate wall that could trap this 25-point push.
             Return ONLY a raw JSON object matching this structure:
-            {
-                "direction": "LONG" or "SHORT",
-                "current_price": float,
-                "stop_loss": float
-            }
+            {{
+                "path_clear": "YES" or "NO",
+                "nearest_wall": float,
+                "flow_analysis": "A single sentence explaining if order flow supports a quick 25-point push."
+            }}
             """
             
             response = model.generate_content([prompt, pil_image])
             data = json.loads(response.text.strip())
             
-            direction = data.get('direction', 'LONG').upper()
-            entry_price = float(data.get('current_price', 0.0))
-            stop_loss = float(data.get('stop_loss', 0.0))
+            path_clear = data.get("path_clear", "YES")
+            nearest_wall = float(data.get("nearest_wall", 0.0))
+            flow_analysis = data.get("flow_analysis", "")
             
-            # BI-DIRECTIONAL MATHEMATICAL 2:1 RATIO CALCULATION
-            if direction == "LONG":
-                # For Longs: Stop Loss is below entry
-                if stop_loss >= entry_price or stop_loss == 0:
-                    stop_loss = entry_price - 50.0  # Default 50pt buffer
-                risk = entry_price - stop_loss
-                take_profit = entry_price + (risk * 2)
-                
-            else:  # SHORT
-                # For Shorts: Stop Loss is above entry
-                if stop_loss <= entry_price or stop_loss == 0:
-                    stop_loss = entry_price + 50.0  # Default 50pt buffer
-                risk = stop_loss - entry_price
-                take_profit = entry_price - (risk * 2)
-            
-            st.success("Analysis & Math Complete!")
-            
-            # Visual indicator badge for trade direction
-            if direction == "LONG":
-                st.markdown("### 🟢 Direction: **LONG (Buy/Call)**")
+            st.markdown("#### 🤖 Instant Order Flow Telemetry")
+            if path_clear == "NO":
+                st.error(f"🚨 IMMEDIATE RESISTANCE WALL SPOTTED AT {nearest_wall:,.2f}: {flow_analysis}")
             else:
-                st.markdown("### 🔴 Direction: **SHORT (Sell/Put)**")
+                st.success(f"✅ MOMENTUM PATH CLEAR: {flow_analysis}")
                 
-            st.markdown("### 🎯 Strict 2:1 Execution Parameters")
-            
-            # Display values clearly
-            st.metric(label="Current Market Price (Entry)", value=f"${entry_price:,.2f}")
-            st.metric(label="Stop Loss (Invalidation)", value=f"${stop_loss:,.2f}")
-            st.metric(label="Take Profit (Automated 2:1 Target)", value=f"${take_profit:,.2f}")
-            
-            st.warning(f"**Total Risk:** {risk:,.2f} points | **Target Reward:** {(risk * 2):,.2f} points (Strict 2:1)")
-            
         except Exception as e:
-            st.error(f"Analysis failed. Details: {e}")
+            st.caption(f"Visual check bypassed: {e}")
